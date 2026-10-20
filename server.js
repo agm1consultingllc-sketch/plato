@@ -9,7 +9,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+// Google retires model names over time (gemini-2.0-flash died Oct 2026) — try
+// the configured model first, then fall back through current ones.
+const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-flash-latest'].filter(Boolean);
+const MODEL = MODELS[0];
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -46,8 +49,25 @@ function demoResult() {
   };
 }
 
+async function geminiPost(bodyObj) {
+  let lastErr;
+  for (const model of MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj) });
+      if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error('Gemini ' + r.status + ' ' + t.slice(0, 200)); }
+      const j = await r.json();
+      const text = j && j.candidates && j.candidates[0] && j.candidates[0].content &&
+        j.candidates[0].content.parts && j.candidates[0].content.parts[0] &&
+        j.candidates[0].content.parts[0].text;
+      if (!text) throw new Error('Empty AI response');
+      return text;
+    } catch (e) { lastErr = e; console.error('geminiPost failed on', model, '-', e.message); }
+  }
+  throw lastErr;
+}
+
 async function analyzeWithGemini(buf, mime) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
   const body = {
     contents: [{
       parts: [
@@ -57,17 +77,7 @@ async function analyzeWithGemini(buf, mime) {
     }],
     generationConfig: { temperature: 0.2, response_mime_type: 'application/json' },
   };
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!r.ok) {
-    const t = await r.text().catch(() => '');
-    throw new Error('Gemini ' + r.status + ' ' + t.slice(0, 200));
-  }
-  const j = await r.json();
-  const text = j && j.candidates && j.candidates[0] && j.candidates[0].content &&
-    j.candidates[0].content.parts && j.candidates[0].content.parts[0] &&
-    j.candidates[0].content.parts[0].text;
-  if (!text) throw new Error('Empty AI response');
-  const parsed = JSON.parse(text);
+  const parsed = JSON.parse(await geminiPost(body));
   if (!parsed || !Array.isArray(parsed.items)) throw new Error('Bad AI shape');
   parsed.items = parsed.items.map(it => ({
     name: String(it.name || 'Food'),
@@ -128,18 +138,11 @@ app.post('/api/recipe', async (req, res) => {
     const lang = req.body && req.body.lang === 'es' ? 'es' : 'en';
     if (!name) return res.status(400).json({ error: 'No dish name' });
     if (!GEMINI_KEY) return res.json(demoRecipe(name));
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
     const body = {
       contents: [{ parts: [{ text: RECIPE_PROMPT(name, lang) }] }],
       generationConfig: { temperature: 0.4, response_mime_type: 'application/json' },
     };
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (!r.ok) throw new Error('Gemini ' + r.status);
-    const j = await r.json();
-    const text = j && j.candidates && j.candidates[0] && j.candidates[0].content &&
-      j.candidates[0].content.parts && j.candidates[0].content.parts[0] && j.candidates[0].content.parts[0].text;
-    if (!text) throw new Error('Empty AI response');
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(await geminiPost(body));
     parsed.demo = false;
     res.json(parsed);
   } catch (e) {
