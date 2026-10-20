@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plato — Point at your plate. Know your calories.</title>
+<meta name="description" content="Snap a photo of any meal — Plato estimates the calories and macros in seconds. Especially good at Latin food. English & Spanish.">
+<style>
+  :root{
+    --bg:#0b0b10; --card:#17171f; --line:#2a2a35; --txt:#f6f3ec; --mut:#a49f92;
+    --gold:#ffd21f; --pink:#ff2e88; --teal:#35e0c8; --amber:#ffb52e;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; min-height:100dvh; display:flex; flex-direction:column}
+  header{padding:22px 16px 6px; text-align:center}
+  header h1{font-size:38px; letter-spacing:5px; font-weight:900; text-transform:uppercase;
+    background:linear-gradient(92deg,#ffe259 10%,#ff2e88 55%,#35e0c8 105%); -webkit-background-clip:text; background-clip:text; color:transparent}
+  header p{color:var(--mut); font-size:14px; margin-top:4px}
+  .langrow{display:flex; justify-content:center; gap:8px; margin-top:12px}
+  .langrow button{border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--txt);
+    font-weight:700; font-size:13px; padding:7px 16px; border-radius:999px; cursor:pointer}
+  .langrow button.on{border-color:var(--gold); color:var(--gold)}
+  main{flex:1; padding:14px 16px 24px; max-width:560px; width:100%; margin:0 auto}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:20px; padding:20px; margin-bottom:14px; box-shadow:0 12px 30px rgba(0,0,0,.45)}
+  .snap{display:block; width:100%; border:none; border-radius:18px; cursor:pointer; padding:20px 16px;
+    color:#241a00; background:linear-gradient(180deg,#ffe259,#ffd21f 55%,#ffb52e);
+    box-shadow:0 10px 26px rgba(255,180,40,.30); font-family:inherit; text-align:center}
+  .snap:active{transform:scale(.985)}
+  .snap .big{display:block; font-size:22px; font-weight:900; letter-spacing:1px}
+  .snap .small{display:block; font-size:13px; font-weight:600; opacity:.75; margin-top:3px}
+  .trust{display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-top:12px}
+  .trust span{font-size:12px; font-weight:700; border:1px solid var(--line); background:rgba(255,255,255,.04); padding:6px 10px; border-radius:999px}
+  #previewWrap{display:none; text-align:center}
+  #preview{max-width:100%; max-height:320px; border-radius:14px; border:1px solid var(--line)}
+  .btn{display:block; width:100%; border:none; border-radius:16px; cursor:pointer; padding:16px; margin-top:12px;
+    font-size:17px; font-weight:800; font-family:inherit; color:#06231e;
+    background:linear-gradient(180deg,#5ff0d8,#35e0c8 60%,#25b7a3); box-shadow:0 8px 22px rgba(53,224,200,.25)}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{background:rgba(255,255,255,.04); color:var(--txt); border:1px solid var(--line); box-shadow:none}
+  .btn:disabled{opacity:.4}
+  .spinner{width:44px; height:44px; border:4px solid var(--line); border-top-color:var(--teal);
+    border-radius:50%; margin:22px auto; animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .status{text-align:center; color:var(--mut); font-size:15px; padding:10px}
+  .total{text-align:center; padding:6px 0 2px}
+  .total .kcal{font-size:56px; font-weight:900; letter-spacing:1px; color:var(--gold); line-height:1}
+  .total .lab{color:var(--mut); font-size:13px; letter-spacing:2px; text-transform:uppercase; margin-top:4px}
+  .macros{display:flex; gap:10px; margin:16px 0 4px}
+  .macro{flex:1; text-align:center}
+  .macro .g{font-size:19px; font-weight:800}
+  .macro .n{font-size:11.5px; color:var(--mut); letter-spacing:1px; text-transform:uppercase}
+  .bar{height:8px; border-radius:99px; background:#101014; margin-top:6px; overflow:hidden}
+  .bar i{display:block; height:100%; border-radius:99px}
+  .item{display:flex; justify-content:space-between; gap:12px; padding:11px 2px; border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:none}
+  .item .nm{font-weight:700; font-size:15.5px}
+  .item .pt{color:var(--mut); font-size:13px}
+  .item .kc{font-weight:800; font-size:16px; color:var(--gold); white-space:nowrap}
+  .item .mc{color:var(--mut); font-size:12px; text-align:right}
+  .note{color:var(--mut); font-size:13.5px; line-height:1.5; margin-top:12px; text-align:center}
+  .conf{display:inline-block; font-size:12px; font-weight:800; letter-spacing:1px; padding:5px 12px; border-radius:999px; border:1px solid var(--teal); color:var(--teal); text-transform:uppercase}
+  .hist h3{font-size:15px; letter-spacing:.5px; margin-bottom:6px}
+  .hist .hrow{display:flex; justify-content:space-between; padding:8px 2px; border-bottom:1px solid var(--line); font-size:14px}
+  .hist .hrow:last-child{border-bottom:none}
+  .rcp-btn{margin-top:7px; border:1px solid var(--gold); color:var(--gold); background:rgba(255,210,31,.08);
+    font-weight:800; font-size:13px; padding:6px 13px; border-radius:999px; cursor:pointer; font-family:inherit}
+  .rcp-btn:active{transform:scale(.96)}
+  .rcp h3{font-size:20px; margin-bottom:4px}
+  .rcp .meta{color:var(--mut); font-size:13.5px; margin-bottom:12px}
+  .rcp h4{font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:var(--teal); margin:14px 0 7px}
+  .rcp ul,.rcp ol{padding-left:20px; line-height:1.65; font-size:15px}
+  .rcp li{margin-bottom:4px}
+  .rcp .tip{margin-top:14px; color:var(--mut); font-size:14px; line-height:1.55; border-top:1px solid var(--line); padding-top:12px}
+  .hist .hrow span{color:var(--mut)}
+  .hidden{display:none!important}
+  footer{padding:14px; text-align:center; color:#7d766b; font-size:11.5px; max-width:560px; margin:0 auto; line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍽️ Plato</h1>
+  <p id="tagline">Point at your plate. Know your calories.</p>
+  <div class="langrow">
+    <button id="langEn" class="on">ENGLISH</button>
+    <button id="langEs">ESPAÑOL</button>
+  </div>
+</header>
+<main>
+  <div class="card">
+    <button class="snap" id="snapBtn">
+      <span class="big" id="snapBig">📸 SNAP YOUR PLATE</span>
+      <span class="small" id="snapSmall">Take or pick a photo of your meal — get the calories in seconds</span>
+    </button>
+    <div class="trust">
+      <span id="t1">🇨🇺 Knows Latin food</span>
+      <span id="t2">⚡ Answer in seconds</span>
+      <span id="t3">🚫 No typing foods</span>
+    </div>
+    <input type="file" id="fileIn" accept="image/*" capture="environment" class="hidden">
+    <div id="previewWrap">
+      <img id="preview" alt="Your meal">
+      <button class="btn" id="analyzeBtn">🔍 COUNT IT</button>
+      <button class="btn ghost" id="retakeBtn">↩ Pick another photo</button>
+    </div>
+    <div id="busy" class="hidden"><div class="spinner"></div><p class="status" id="busyTxt">Reading your plate…</p></div>
+    <p class="status hidden" id="errBox"></p>
+  </div>
+
+  <div class="card hidden" id="resultCard">
+    <div class="total">
+      <div class="kcal" id="totKcal">0</div>
+      <div class="lab" id="totLab">calories (est.)</div>
+    </div>
+    <div class="macros">
+      <div class="macro"><div class="g" id="mP">0g</div><div class="n" id="nP">Protein</div><div class="bar"><i id="bP" style="background:var(--pink); width:0%"></i></div></div>
+      <div class="macro"><div class="g" id="mC">0g</div><div class="n" id="nC">Carbs</div><div class="bar"><i id="bC" style="background:var(--gold); width:0%"></i></div></div>
+      <div class="macro"><div class="g" id="mF">0g</div><div class="n" id="nF">Fat</div><div class="bar"><i id="bF" style="background:var(--teal); width:0%"></i></div></div>
+    </div>
+    <div id="items"></div>
+    <p class="note"><span class="conf" id="confBadge">confidence</span></p>
+    <p class="note" id="aiNote"></p>
+    <p class="note" id="disclaimer">Estimate from a photo — real values vary with recipe and portion. Not medical advice.</p>
+  </div>
+
+  <div class="card rcp hidden" id="recipeCard">
+    <h3 id="rcpTitle"></h3>
+    <p class="meta" id="rcpMeta"></p>
+    <h4 id="rcpIngH">Ingredients</h4>
+    <ul id="rcpIng"></ul>
+    <h4 id="rcpStepH">Steps</h4>
+    <ol id="rcpSteps"></ol>
+    <p class="tip" id="rcpTip"></p>
+    <button class="btn ghost" id="rcpClose">✕ Close</button>
+  </div>
+
+  <div class="card hist hidden" id="histCard">
+    <h3 id="histTitle">Today on your plates</h3>
+    <div id="histRows"></div>
+    <div class="hrow" style="font-weight:800"><span id="histTotalLab" style="color:var(--txt)">Day total</span><b id="histTotal">0 kcal</b></div>
+  </div>
+</main>
+<footer id="foot">PLATO — by AGM 1 Consulting LLC · Estimates only · Hecho con ❤️ en Miami</footer>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const I18N = {
+  en: { tagline:'Point at your plate. Know your calories.', snapBig:'📸 SNAP YOUR PLATE',
+    snapSmall:'Take or pick a photo of your meal — get the calories in seconds',
+    t1:'🇨🇺 Knows Latin food', t2:'⚡ Answer in seconds', t3:'🚫 No typing foods',
+    count:'🔍 COUNT IT', retake:'↩ Pick another photo', busy:'Reading your plate…',
+    totLab:'calories (est.)', nP:'Protein', nC:'Carbs', nF:'Fat',
+    conf:'confidence', disclaimer:'Estimate from a photo — real values vary with recipe and portion. Not medical advice.',
+    histTitle:'Today on your plates', histTotal:'Day total', rcp:'🍳 Recipe', ing:'Ingredients', steps:'Steps',
+    rcpBusy:'Writing your recipe…', serves:'serves',
+    err:'Something went wrong — try again with a clearer photo.' },
+  es: { tagline:'Apunta a tu plato. Conoce tus calorías.', snapBig:'📸 FOTO A TU PLATO',
+    snapSmall:'Toma o elige una foto de tu comida — calorías en segundos',
+    t1:'🇨🇺 Conoce la comida latina', t2:'⚡ Respuesta en segundos', t3:'🚫 Sin escribir nada',
+    count:'🔍 ¡CUÉNTALO!', retake:'↩ Otra foto', busy:'Leyendo tu plato…',
+    totLab:'calorías (est.)', nP:'Proteína', nC:'Carbos', nF:'Grasa',
+    conf:'confianza', disclaimer:'Estimado de una foto — los valores reales varían según la receta y la porción. No es consejo médico.',
+    histTitle:'Hoy en tus platos', histTotal:'Total del día', rcp:'🍳 Receta', ing:'Ingredientes', steps:'Pasos',
+    rcpBusy:'Escribiendo tu receta…', serves:'porciones',
+    err:'Algo salió mal — inténtalo con una foto más clara.' },
+};
+let lang = localStorage.getItem('plato-lang') || 'en';
+function applyLang() {
+  const t = I18N[lang];
+  $('#tagline').textContent = t.tagline; $('#snapBig').textContent = t.snapBig; $('#snapSmall').textContent = t.snapSmall;
+  $('#t1').textContent = t.t1; $('#t2').textContent = t.t2; $('#t3').textContent = t.t3;
+  $('#analyzeBtn').textContent = t.count; $('#retakeBtn').textContent = t.retake; $('#busyTxt').textContent = t.busy;
+  $('#totLab').textContent = t.totLab; $('#nP').textContent = t.nP; $('#nC').textContent = t.nC; $('#nF').textContent = t.nF;
+  $('#disclaimer').textContent = t.disclaimer; $('#histTitle').textContent = t.histTitle; $('#histTotalLab').textContent = t.histTotal;
+  $('#langEn').classList.toggle('on', lang === 'en'); $('#langEs').classList.toggle('on', lang === 'es');
+  localStorage.setItem('plato-lang', lang); renderHist();
+}
+$('#langEn').onclick = () => { lang = 'en'; applyLang(); };
+$('#langEs').onclick = () => { lang = 'es'; applyLang(); };
+
+let photoFile = null;
+$('#snapBtn').onclick = () => $('#fileIn').click();
+$('#fileIn').addEventListener('change', () => {
+  const f = $('#fileIn').files[0]; if (!f) return;
+  photoFile = f;
+  $('#preview').src = URL.createObjectURL(f);
+  $('#previewWrap').style.display = 'block';
+  $('#errBox').classList.add('hidden');
+});
+$('#retakeBtn').onclick = () => { $('#fileIn').value = ''; $('#fileIn').click(); };
+
+function histLoad() { try { return JSON.parse(localStorage.getItem('plato-hist') || '[]'); } catch (_) { return []; } }
+function histSave(rows) { localStorage.setItem('plato-hist', JSON.stringify(rows.slice(0, 30))); }
+function renderHist() {
+  const rows = histLoad().filter(r => new Date(r.ts).toDateString() === new Date().toDateString());
+  const card = $('#histCard');
+  if (!rows.length) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  $('#histRows').innerHTML = rows.map(r =>
+    '<div class="hrow"><span>' + r.when + ' — ' + r.label + '</span><b>' + r.kcal + ' kcal</b></div>').join('');
+  $('#histTotal').textContent = rows.reduce((a, r) => a + r.kcal, 0) + ' kcal';
+}
+
+$('#analyzeBtn').onclick = async () => {
+  if (!photoFile) return;
+  $('#busy').classList.remove('hidden'); $('#errBox').classList.add('hidden');
+  $('#analyzeBtn').disabled = true;
+  try {
+    const fd = new FormData(); fd.append('photo', photoFile);
+    const r = await fetch('/api/analyze', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'fail');
+    showResult(j);
+    const rows = histLoad();
+    rows.unshift({ ts: Date.now(), when: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      label: j.items[0] ? j.items[0].name : 'Meal', kcal: j.items.reduce((a, i) => a + i.calories, 0) });
+    histSave(rows); renderHist();
+  } catch (_) {
+    const e = $('#errBox'); e.textContent = I18N[lang].err; e.classList.remove('hidden');
+  } finally {
+    $('#busy').classList.add('hidden'); $('#analyzeBtn').disabled = false;
+  }
+};
+
+$('#items').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.rcp-btn'); if (!btn) return;
+  const name = btn.getAttribute('data-name');
+  const card = $('#recipeCard');
+  card.classList.remove('hidden');
+  $('#rcpTitle').textContent = name;
+  $('#rcpMeta').textContent = I18N[lang].rcpBusy;
+  $('#rcpIng').innerHTML = ''; $('#rcpSteps').innerHTML = ''; $('#rcpTip').textContent = '';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const r = await fetch('/api/recipe', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, lang }) });
+    const j = await r.json(); if (!r.ok) throw new Error('fail');
+    $('#rcpTitle').textContent = j.title || name;
+    $('#rcpMeta').textContent = '⏱ ' + (j.time || '') + ' · 🍽 ' + I18N[lang].serves + ' ' + (j.servings || '4') +
+      (j.calories_per_serving ? ' · 🔥 ~' + j.calories_per_serving + ' kcal' : '') + (j.demo ? ' · DEMO' : '');
+    $('#rcpIngH').textContent = I18N[lang].ing; $('#rcpStepH').textContent = I18N[lang].steps;
+    $('#rcpIng').innerHTML = (j.ingredients || []).map(x => '<li>' + x + '</li>').join('');
+    $('#rcpSteps').innerHTML = (j.steps || []).map(x => '<li>' + x + '</li>').join('');
+    $('#rcpTip').textContent = j.tip ? '💡 ' + j.tip : '';
+  } catch (_) {
+    $('#rcpMeta').textContent = I18N[lang].err;
+  }
+});
+$('#rcpClose').onclick = () => $('#recipeCard').classList.add('hidden');
+
+function showResult(j) {
+  const tot = j.items.reduce((a, i) => a + i.calories, 0);
+  const P = j.items.reduce((a, i) => a + i.protein_g, 0);
+  const C = j.items.reduce((a, i) => a + i.carbs_g, 0);
+  const F = j.items.reduce((a, i) => a + i.fat_g, 0);
+  $('#totKcal').textContent = tot;
+  $('#mP').textContent = P + 'g'; $('#mC').textContent = C + 'g'; $('#mF').textContent = F + 'g';
+  const pk = P * 4, ck = C * 4, fk = F * 9, all = Math.max(1, pk + ck + fk);
+  $('#bP').style.width = Math.round(pk / all * 100) + '%';
+  $('#bC').style.width = Math.round(ck / all * 100) + '%';
+  $('#bF').style.width = Math.round(fk / all * 100) + '%';
+  $('#items').innerHTML = j.items.map(i =>
+    '<div class="item"><div><div class="nm">' + i.name + '</div><div class="pt">' + i.portion + '</div>' +
+    '<button class="rcp-btn" data-name="' + i.name.replace(/"/g, '&quot;') + '">' + I18N[lang].rcp + '</button></div>' +
+    '<div><div class="kc">' + i.calories + ' kcal</div>' +
+    '<div class="mc">P ' + i.protein_g + ' · C ' + i.carbs_g + ' · F ' + i.fat_g + '</div></div></div>').join('');
+  $('#confBadge').textContent = I18N[lang].conf + ': ' + j.confidence + (j.demo ? ' · DEMO' : '');
+  $('#aiNote').textContent = j.note || '';
+  $('#resultCard').classList.remove('hidden');
+  $('#resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+applyLang();
+</script>
+</body>
+</html>
