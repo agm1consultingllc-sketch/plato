@@ -1,1 +1,15 @@
-{"dependencies":{"express":"^4.19.2","multer":"^1.4.5-lts.1"},"description":"Plato — point at your plate, know your calories. Photo calorie estimator with Latin-food smarts, EN/ES.","main":"server.js","name":"plato","private":true,"scripts":{"start":"node server.js"},"type":"commonjs","version":"1.0.0"}
+{
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "description": "Plato \u2014 point at your plate, know your calories. Photo calorie estimator with Latin-food smarts, EN/ES.",
+  "main": "server.js",
+  "name": "plato",
+  "private": true,
+  "scripts": {
+    "start": "node --dns-result-order=ipv4first server.js"
+  },
+  "type": "commonjs",
+  "version": "1.0.0"
+}
