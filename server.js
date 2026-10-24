@@ -10,8 +10,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
 // Google retires model names over time (gemini-2.0-flash died Oct 2026) — try
-// the configured model first, then fall back through current ones.
-const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-flash-latest'].filter(Boolean);
+// the configured model first, then fall back through current REAL ones only
+// (a nonexistent 'gemini-3.8-flash' entry was removed Oct 24, 2026).
+const MODELS = [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-flash-latest'].filter(Boolean);
 const MODEL = MODELS[0];
 
 const upload = multer({
